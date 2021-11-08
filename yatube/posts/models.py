@@ -1,7 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.constraints import UniqueConstraint
-from django.db.models.fields import DateTimeField
 
 from core.models import CreatedModel
 from core.context_processors.pytils.templatetags.pytils_translit import slugify
