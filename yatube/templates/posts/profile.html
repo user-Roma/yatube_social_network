@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load thumbnail %}
+
+
+{% block title %}
+  Blogger profile {{ author.get_full_name }}
+{% endblock%}
+
+
+{% block content %}
+<div class="mb-5">
+  <h1>All posts by {{ author.get_full_name }}</h1>
+  <h3>Total posts: {{ post_count }}</h3>
+  <h6>Followers: {{ followers }}</h6>
+  {% if author == request.user %}
+  {% else %}
+    {% if following %}
+      <a
+        class="btn btn-lg btn-light"
+        href="{% url 'posts:profile_unfollow' author.username %}" role="button"
+      >
+        Отписаться
+      </a>
+    {% else %}
+        <a
+          class="btn btn-lg btn-primary"
+          href="{% url 'posts:profile_follow' author.username %}" role="button"
+        >
+          Подписаться
+        </a>
+    {% endif %}
+  {% endif %}
+</div>
+  {% if not forloop.last %}<hr>{% endif %}
+  {% for post in page_obj %} 
+    <article>
+      <ul>
+        <li>
+          Автор: {{ author.get_full_name }}
+          <a href="{% url 'posts:profile' post.author.username %}">все посты пользователя</a>
+        </li>
+      <ul>
+        <li>
+          Published: {{ post.pub_date|date:"d E Y" }}
+        </li>
+      </ul>
+      {% thumbnail post.image "960x339" crop="center" upscale=True as im%}
+        <img class="card-img my-2" src="{{ im.url }}">
+      {% endthumbnail %}
+      <p>{{ post.text|truncatechars:333 }}</p>
+      <a href="{% url 'posts:post_detail' post.id %}">see more</a>
+    </article>
+    {% if post.group %}
+      <a href="{% url 'posts:group_list' post.group.slug %}">
+        all records of the group
+      </a>
+    {% endif %}
+  {% if not forloop.last %}<hr>{% endif %}
+  {% endfor %} 
+  {% include 'includes/paginator.html' %}
+{% endblock %}
