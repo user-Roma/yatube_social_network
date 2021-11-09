@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 from core.models import CreatedModel
-from core.context_processors.pytils.templatetags.pytils_translit import slugify
+from pytils.translit import slugify
 
 User = get_user_model()
 
@@ -118,6 +118,13 @@ class Follow(CreatedModel):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'], name='unique_follow'
+            )
+        ]
 
     def __str__(self) -> str:
         return 'Follow / Unfolow'

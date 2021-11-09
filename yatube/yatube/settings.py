@@ -46,7 +46,9 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'core.apps.CoreConfig',
     'about.apps.AboutConfig',
+    'utils.apps.UtilsConfig',
     'sorl.thumbnail',
+    'pytils',
 ]
 
 MIDDLEWARE = [

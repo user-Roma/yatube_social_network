@@ -13,21 +13,22 @@
   <h1>All posts by {{ author.get_full_name }}</h1>
   <h3>Total posts: {{ post_count }}</h3>
   <h6>Followers: {{ followers }}</h6>
-  {% if author == request.user %}
+  {% if author == request.user %} 
+    <!-- Это условие убирает кнопку подписаться, когда попадаешь в свой профиль, мелочь а приятно) -->
   {% else %}
     {% if following %}
       <a
         class="btn btn-lg btn-light"
         href="{% url 'posts:profile_unfollow' author.username %}" role="button"
       >
-        Отписаться
+        Unfollow
       </a>
     {% else %}
         <a
           class="btn btn-lg btn-primary"
           href="{% url 'posts:profile_follow' author.username %}" role="button"
         >
-          Подписаться
+          Follow
         </a>
     {% endif %}
   {% endif %}
