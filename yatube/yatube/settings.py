@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'about.apps.AboutConfig',
     'utils.apps.UtilsConfig',
     'sorl.thumbnail',
-    'pytils',
 ]
 
 MIDDLEWARE = [
