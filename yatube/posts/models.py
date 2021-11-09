@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 from core.models import CreatedModel
-from pytils.translit import slugify
+from core.context_processors.pytils.templatetags.pytils_translit import slugify
 
 User = get_user_model()
 
