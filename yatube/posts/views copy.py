@@ -1,11 +1,7 @@
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-# from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import ListView
-# from django.views.generic import CreateView
-# from django.urls import reverse_lazy
 
 from .models import Follow, Group, Post, User
 from .forms import CommentForm, PostForm
@@ -14,51 +10,50 @@ from .forms import CommentForm, PostForm
 posts_per_page = settings.CUSTOM_SETTINGS['POSTS_PER_PAGE']
 
 
-class IndexView(ListView):
-    model = Post
-    paginate_by = posts_per_page
-    template_name = 'posts/index.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['my_timeout'] = 20
-        return context
-
-
-class GroupPostsView(ListView):
-    paginate_by = posts_per_page
-    template_name = 'posts/group_list.html'
-
-    def get_queryset(self):
-        self.group = get_object_or_404(Group, slug=self.kwargs['slug'])
-        return self.group.posts.all()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['group'] = self.group
-        return context
+def index(request):
+    post_list = Post.objects.select_related('group').all()
+    paginator = Paginator(post_list, posts_per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'page_obj': page_obj,
+        'my_timeout': 20,
+    }
+    return render(request, 'posts/index.html', context)
 
 
-class ProfileView(ListView):
-    paginate_by = posts_per_page
-    template_name = 'posts/profile.html'
-
-    def get_queryset(self):
-        self.author = get_object_or_404(User, username=self.kwargs['username'])
-        return self.author.posts.all()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['author'] = self.author
-        context['post_count'] = self.author.posts.all().count()
-        context['followers'] = self.author.following.all().count()
-        context['following'] = self.author.following.filter(
-            user=self.request.user.id
-        ).exists()
-        return context
+def group_posts(request, slug):
+    group = get_object_or_404(Group, slug=slug)
+    post_list = group.posts.all()
+    paginator = Paginator(post_list, posts_per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'group': group,
+        'page_obj': page_obj,
+    }
+    return render(request, 'posts/group_list.html', context)
 
 
-# Тут если делать class PostDetail лучше сразу добавить def add_comment внутрь?
+def profile(request, username):
+    author = get_object_or_404(User, username=username)
+    post_list = author.posts.all()
+    post_count = post_list.count()
+    paginator = Paginator(post_list, posts_per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    followers = author.following.all().count()
+    following = author.following.filter(user=request.user.id).exists()
+    context = {
+        'author': author,
+        'post_count': post_count,
+        'page_obj': page_obj,
+        'following': following,
+        'followers': followers,
+    }
+    return render(request, 'posts/profile.html', context)
+
+
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     post_count = Post.objects.filter(author=post.author).count()
@@ -71,26 +66,6 @@ def post_detail(request, post_id):
         'comments': comments,
     }
     return render(request, 'posts/post_detail.html', context)
-
-# Тут выдает ошибку: django.db.utils.IntegrityError:
-# NOT NULL constraint failed: posts_post.author_id -
-# я не могу понять почему он не подставляет автора,
-# попробоавл поставить в моделе Post: author: null=True, тогда работает,
-# но создаются посты без автора, код тут:
-
-# class PostCreateView(LoginRequiredMixin, CreateView):
-#     template_name = 'posts/create_post.html'
-#     model = Post
-#     form_class = PostForm
-
-#     def get_success_url(self) -> str:
-#         request_user = self.kwargs['username']
-#         return reverse_lazy(
-#             'posts:post_create',
-#             kwargs={'username': request_user}
-#         )
-
-# Дайте наводку)
 
 
 @login_required

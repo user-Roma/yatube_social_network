@@ -11,7 +11,7 @@
 
 {% block content %}
 
-  {% cache my_timeout index_page request.user.username %}
+  {% cache my_timeout index_page%}
     
     <p><h1>Latest Updates</h1></p>
     {% include 'includes/switcher.html' %}
