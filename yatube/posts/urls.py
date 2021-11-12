@@ -18,22 +18,26 @@ urlpatterns = [
         views.add_comment,
         name='add_comment'
     ),
-    path('create/', views.post_create, name='post_create'),
-    path('posts/<int:post_id>/edit/', views.post_edit, name='post_edit'),
+    path('create/', views.PostCreateView.as_view(), name='post_create'),
+    path(
+        'posts/<int:post_id>/edit/',
+        views.PostEditView.as_view(),
+        name='post_edit'
+    ),
     path(
         'group/<slug:slug>/',
         views.GroupPostsView.as_view(),
         name='group_list'
     ),
-    path('follow/', views.follow_index, name='follow_index'),
+    path('follow/', views.FollowIndexView.as_view(), name='follow_index'),
     path(
         'profile/<str:username>/follow/',
-        views.profile_follow,
+        views.ProfileFollowView.as_view(),
         name='profile_follow'
     ),
     path(
         'profile/<str:username>/unfollow/',
-        views.profile_unfollow,
+        views.ProfileUnfollowView.as_view(),
         name='profile_unfollow'
     ),
 ]

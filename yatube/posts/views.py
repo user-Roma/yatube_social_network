@@ -1,11 +1,11 @@
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-# from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import ListView
-# from django.views.generic import CreateView
-# from django.urls import reverse_lazy
+from django.views.generic import ListView, View
+from django.views.generic import CreateView
+from django.urls import reverse_lazy
+from django.views.generic.edit import UpdateView
 
 from .models import Follow, Group, Post, User
 from .forms import CommentForm, PostForm
@@ -13,7 +13,8 @@ from .forms import CommentForm, PostForm
 
 posts_per_page = settings.CUSTOM_SETTINGS['POSTS_PER_PAGE']
 
-
+# странно работает переход по страницам, почемуто срабатывает врандомном порядке,
+# в терминале пишет, что перешел,код 200, а в браузере ничего не происходит
 class IndexView(ListView):
     model = Post
     paginate_by = posts_per_page
@@ -72,59 +73,54 @@ def post_detail(request, post_id):
     }
     return render(request, 'posts/post_detail.html', context)
 
-# Тут выдает ошибку: django.db.utils.IntegrityError:
-# NOT NULL constraint failed: posts_post.author_id -
-# я не могу понять почему он не подставляет автора,
-# попробоавл поставить в моделе Post: author: null=True, тогда работает,
-# но создаются посты без автора, код тут:
 
-# class PostCreateView(LoginRequiredMixin, CreateView):
-#     template_name = 'posts/create_post.html'
-#     model = Post
-#     form_class = PostForm
+class PostCreateView(LoginRequiredMixin, CreateView):
+    template_name = 'posts/create_post.html'
+    model = Post
+    form_class = PostForm
 
-#     def get_success_url(self) -> str:
-#         request_user = self.kwargs['username']
-#         return reverse_lazy(
-#             'posts:post_create',
-#             kwargs={'username': request_user}
-#         )
+    def get_success_url(self) -> str:
+        request_user = self.request.user.username
+        return reverse_lazy(
+            'posts:profile',
+            kwargs={'username': request_user}
+        )
 
-# Дайте наводку)
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
 
 
-@login_required
-def post_create(request):
-    form = PostForm(
-        request.POST or None,
-        files=request.FILES or None
-    )
-    if form.is_valid():
-        form.instance.author = request.user
-        form.save()
-        return redirect('posts:profile', username=request.user)
-    return render(request, 'posts/create_post.html', {'form': form})
+class PostEditView(LoginRequiredMixin, UpdateView):
+    template_name = 'posts/create_post.html'
+    model = Post
+    form_class = PostForm
 
+    def get_object(self):
+        return get_object_or_404(Post, id=self.kwargs['post_id'])
 
-@login_required
-def post_edit(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if request.user != post.author:
-        return redirect('posts:post_detail', post_id=post.id)
-    form = PostForm(
-        request.POST or None,
-        files=request.FILES or None,
-        instance=post
-    )
-    if form.is_valid():
-        form.save()
-        return redirect('posts:post_detail', post_id=post.id)
-    context = {
-        'post': post,
-        'form': form,
-        'is_edit': True,
-    }
-    return render(request, 'posts/create_post.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True
+        return context
+
+    def get_success_url(self) -> str:
+        post = self.get_object()
+        return reverse_lazy(
+            'posts:post_detail',
+            kwargs={'post_id': post.id}
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if self.request.user != post.author:
+            return redirect(
+                'posts:post_detail',
+                post_id=self.kwargs['post_id']
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 
 @login_required
@@ -139,18 +135,32 @@ def add_comment(request, post_id):
     return redirect('posts:post_detail', post_id=post_id)
 
 
-@login_required
-def follow_index(request):
-    post_list = Post.objects.select_related(
-        'author'
-    ).filter(author__following__user=request.user)
-    paginator = Paginator(post_list, posts_per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    context = {
-        'page_obj': page_obj,
-    }
-    return render(request, 'posts/follow.html', context)
+class FollowIndexView(LoginRequiredMixin, ListView):
+    paginate_by = posts_per_page
+    template_name = 'posts/follow.html'
+
+    def get_queryset(self):
+        return Post.objects.select_related(
+            'author'
+        ).filter(author__following__user=self.request.user)
+
+
+# в чем тут может быть проблема?
+class ProfileFollowView(LoginRequiredMixin, View):
+    def get(self, request, **kwargs):
+        user = get_object_or_404(User, username=self.kwargs['username'])
+        if user == self.request.user:
+            return redirect('posts:profile', username=self.kwargs['username'])
+        Follow.objects.get_or_create(user=self.request.user, author=user)
+        return redirect('posts:profile', username=self.kwargs['username'])
+
+
+# в чем тут может быть проблема?
+class ProfileUnfollowView(LoginRequiredMixin, View):
+    def get(self, request, **kwargs):
+        user = get_object_or_404(User, username=self.kwargs['username'])
+        get_object_or_404(Follow, user=self.request.user, author=user).delete()
+        return redirect('posts:profile', username=self.kwargs['username'])
 
 
 @login_required
