@@ -437,55 +437,55 @@ class PostsPagesTests(TestCase):
 
     def test_authorized_user_can_follow(self) -> None:
         """Test follow for authorized user"""
-        # following_start = Follow.objects.filter(user=self.user_1).count()
-        # response_follow = self.authorized_client.post(
-        #    reverse('posts:profile_follow', kwargs={'username': self.user_2}),
-        #     follow=True
-        # )
-        # self.assertRedirects(
-        #     response_follow,
-        #     reverse(
-        #         'posts:profile',
-        #         kwargs={'username': self.user_2}
-        #     )
-        # )
-
-        # User_1 has 0 followings, after following User_2
-        # following count should change to 1
-        # self.assertEqual(
-        #     Follow.objects.filter(user=self.user_1).count(),
-        #     following_start + self.one,
-        #     '!!! - CRUSHED: new follow for user didnt appear in db'
-        # )
-
-        # Check if user appears in author.following
-        # self.assertEqual(
-        #     Follow.objects.get(author=self.user_2).user,
-        #     self.user_1,
-        #     test_crush + 'user doesnt following this author'
-        # )
-
-    def test_authorized_user_can_unfollow(self) -> None:
-        """Test unfollow for authorized user"""
-        self.authorized_client.post(
+        following_start = Follow.objects.filter(user=self.user_1).count()
+        response_follow = self.authorized_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.user_2}),
             follow=True
         )
-        # user_follows_count = Follow.objects.filter(user=self.user_1).count()
-        # response_unfollow = self.authorized_client.post(
-        #     reverse('posts:profile_unfollow',
-        #             kwargs={'username': self.user_2}),
-        #     follow=True
-        # )
-        # self.assertRedirects(
-        #     response_unfollow,
-        #     reverse('posts:profile', kwargs={'username': self.user_2}),
-        # )
-        # self.assertNotEqual(
-        #     user_follows_count,
-        #     Follow.objects.filter(user=self.user_1).count(),
-        #     test_crush + 'following didnt break'
-        # )
+        self.assertRedirects(
+            response_follow,
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.user_2}
+            )
+        )
+
+        # User_1 has 0 followings, after following User_2
+        # following count should change to 1
+        self.assertEqual(
+            Follow.objects.filter(user=self.user_1).count(),
+            following_start + self.one,
+            '!!! - CRUSHED: new follow for user didnt appear in db'
+        )
+
+        # Check if user appears in author.following
+        self.assertEqual(
+            Follow.objects.get(author=self.user_2).user,
+            self.user_1,
+            test_crush + 'user doesnt following this author'
+        )
+
+    def test_authorized_user_can_unfollow(self) -> None:
+        """Test unfollow for authorized user"""
+        self.authorized_client.get(
+            reverse('posts:profile_follow', kwargs={'username': self.user_2}),
+            follow=True
+        )
+        user_follows_count = Follow.objects.filter(user=self.user_1).count()
+        response_unfollow = self.authorized_client.get(
+            reverse('posts:profile_unfollow',
+                    kwargs={'username': self.user_2}),
+            follow=True
+        )
+        self.assertRedirects(
+            response_unfollow,
+            reverse('posts:profile', kwargs={'username': self.user_2}),
+        )
+        self.assertNotEqual(
+            user_follows_count,
+            Follow.objects.filter(user=self.user_1).count(),
+            test_crush + 'following didnt break'
+        )
 
         # Try to find deleted follow from user in data base
         try:
@@ -500,25 +500,25 @@ class PostsPagesTests(TestCase):
 
     def test_new_post_on_subscriber_follow_page(self) -> None:
         """New post should appear on subscriber follow page"""
-        self.authorized_client.post(
+        self.authorized_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.user_2})
         )
-        self.authorized_client_2.post(
+        self.authorized_client_2.get(
             '/create/',
             {'text': 'Text only for my subscribers'}
         )
-        # check_follow = self.authorized_client.get('/follow/')
-        # author_post = self.authorized_client_2.get(
-        #     reverse('posts:profile', kwargs={'username': self.user_2})
-        # )
-        # self.assertIn(
-        #     check_follow.context['page_obj'][self.last_post],
-        #     Post.objects.filter(author=self.user_2)
-        # )
-        # self.assertEqual(
-        #     check_follow.context['page_obj'][self.last_post],
-        #     author_post.context['page_obj'][self.last_post]
-        # )
+        check_follow = self.authorized_client.get('/follow/')
+        author_post = self.authorized_client_2.get(
+            reverse('posts:profile', kwargs={'username': self.user_2})
+        )
+        self.assertIn(
+            check_follow.context['page_obj'][self.last_post],
+            Post.objects.filter(author=self.user_2)
+        )
+        self.assertEqual(
+            check_follow.context['page_obj'][self.last_post],
+            author_post.context['page_obj'][self.last_post]
+        )
 
     def test_new_post_shouldnt_appear_if_not_follow_author(self) -> None:
         """User shouldnt see posts of unfollowing authors"""

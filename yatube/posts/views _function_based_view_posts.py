@@ -1,3 +1,11 @@
+"""
+Изначальный вариант views, созданный на основе Function Based View
+для приложения posts, проекта yatube.
+Я бы хотел сохранить данный файл в этом каталоге в
+неизменном виде для себя и будущих поколений.
+Михаил, не заставляйте меня удалять этот файл из проекта :)
+"""
+
 from django.conf import settings
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required

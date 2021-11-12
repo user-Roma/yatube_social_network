@@ -1,10 +1,11 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, View
 from django.views.generic import CreateView
 from django.urls import reverse_lazy
+from django.views.generic.detail import DetailView
 from django.views.generic.edit import UpdateView
 
 from .models import Follow, Group, Post, User
@@ -13,15 +14,15 @@ from .forms import CommentForm, PostForm
 
 posts_per_page = settings.CUSTOM_SETTINGS['POSTS_PER_PAGE']
 
-# Indexpage - странно работает переход по страницам,
-# почемуто срабатывает в рандомном порядке,
-# в терминале пишет, что перешел,код 200, а в браузере ничего не происходит
-
 
 class IndexView(ListView):
-    model = Post
+    """Shows main page of the project"""
     paginate_by = posts_per_page
     template_name = 'posts/index.html'
+
+    def get_queryset(self):
+        self.post = Post.objects.select_related('group').all()
+        return self.post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -30,6 +31,7 @@ class IndexView(ListView):
 
 
 class GroupPostsView(ListView):
+    """Shows page filtered according to the post group"""
     paginate_by = posts_per_page
     template_name = 'posts/group_list.html'
 
@@ -44,6 +46,7 @@ class GroupPostsView(ListView):
 
 
 class ProfileView(ListView):
+    """Shows author profile page with his posts"""
     paginate_by = posts_per_page
     template_name = 'posts/profile.html'
 
@@ -62,22 +65,25 @@ class ProfileView(ListView):
         return context
 
 
-# Еше не придумал как реализовать
-def post_detail(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    post_count = Post.objects.filter(author=post.author).count()
-    form = CommentForm(request.POST or None)
-    comments = post.comments.all()
-    context = {
-        'post': post,
-        'post_count': post_count,
-        'form': form,
-        'comments': comments,
-    }
-    return render(request, 'posts/post_detail.html', context)
+class PostDetailView(DetailView):
+    """Shows only selected post"""
+    template_name = 'posts/post_detail.html'
+    model = Post
+
+    def get_object(self):
+        return get_object_or_404(Post, id=self.kwargs['post_id'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        context['post_count'] = Post.objects.filter(author=post.author).count()
+        context['comments'] = post.comments.all()
+        context['form'] = CommentForm(self.request.POST or None)
+        return context
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
+    """Creation of new post"""
     template_name = 'posts/create_post.html'
     model = Post
     form_class = PostForm
@@ -95,6 +101,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
 
 class PostEditView(LoginRequiredMixin, UpdateView):
+    """Edition of selected post"""
     template_name = 'posts/create_post.html'
     model = Post
     form_class = PostForm
@@ -128,6 +135,7 @@ class PostEditView(LoginRequiredMixin, UpdateView):
 
 @login_required
 def add_comment(request, post_id):
+    """Adding comments to selected post"""
     post = get_object_or_404(Post, id=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
@@ -139,6 +147,7 @@ def add_comment(request, post_id):
 
 
 class FollowIndexView(LoginRequiredMixin, ListView):
+    """Shows page with posts of authors which you subscribed"""
     paginate_by = posts_per_page
     template_name = 'posts/follow.html'
 
@@ -148,9 +157,8 @@ class FollowIndexView(LoginRequiredMixin, ListView):
         ).filter(author__following__user=self.request.user)
 
 
-# в чем тут может быть проблема? в моих тестах отдает оишибки
-# тесты, которые не проходит закомментировал
 class ProfileFollowView(LoginRequiredMixin, View):
+    """Subscribing for author"""
     def get(self, request, **kwargs):
         user = get_object_or_404(User, username=self.kwargs['username'])
         if user == self.request.user:
@@ -159,9 +167,8 @@ class ProfileFollowView(LoginRequiredMixin, View):
         return redirect('posts:profile', username=self.kwargs['username'])
 
 
-# в чем тут может быть проблема? в моих тестах отдает оишибки
-# тесты, которые не проходит закомментировал
 class ProfileUnfollowView(LoginRequiredMixin, View):
+    """Unsubscribing for author"""
     def get(self, request, **kwargs):
         user = get_object_or_404(User, username=self.kwargs['username'])
         get_object_or_404(Follow, user=self.request.user, author=user).delete()

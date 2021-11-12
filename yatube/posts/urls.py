@@ -12,7 +12,11 @@ urlpatterns = [
         views.ProfileView.as_view(),
         name='profile'
     ),
-    path('posts/<int:post_id>/', views.post_detail, name='post_detail'),
+    path(
+        'posts/<int:post_id>/',
+        views.PostDetailView.as_view(),
+        name='post_detail'
+    ),
     path(
         'posts/<int:post_id>/comment/',
         views.add_comment,
