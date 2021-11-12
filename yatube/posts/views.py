@@ -13,8 +13,11 @@ from .forms import CommentForm, PostForm
 
 posts_per_page = settings.CUSTOM_SETTINGS['POSTS_PER_PAGE']
 
-# странно работает переход по страницам, почемуто срабатывает врандомном порядке,
+# Indexpage - странно работает переход по страницам,
+# почемуто срабатывает в рандомном порядке,
 # в терминале пишет, что перешел,код 200, а в браузере ничего не происходит
+
+
 class IndexView(ListView):
     model = Post
     paginate_by = posts_per_page
@@ -59,7 +62,7 @@ class ProfileView(ListView):
         return context
 
 
-# Тут если делать class PostDetail лучше сразу добавить def add_comment внутрь?
+# Еше не придумал как реализовать
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     post_count = Post.objects.filter(author=post.author).count()
@@ -145,7 +148,7 @@ class FollowIndexView(LoginRequiredMixin, ListView):
         ).filter(author__following__user=self.request.user)
 
 
-# в чем тут может быть проблема?
+# в чем тут может быть проблема? в моих тестах отдает оишибки
 class ProfileFollowView(LoginRequiredMixin, View):
     def get(self, request, **kwargs):
         user = get_object_or_404(User, username=self.kwargs['username'])
@@ -155,25 +158,9 @@ class ProfileFollowView(LoginRequiredMixin, View):
         return redirect('posts:profile', username=self.kwargs['username'])
 
 
-# в чем тут может быть проблема?
+# в чем тут может быть проблема? в моих тестах отдает оишибки
 class ProfileUnfollowView(LoginRequiredMixin, View):
     def get(self, request, **kwargs):
         user = get_object_or_404(User, username=self.kwargs['username'])
         get_object_or_404(Follow, user=self.request.user, author=user).delete()
         return redirect('posts:profile', username=self.kwargs['username'])
-
-
-@login_required
-def profile_follow(request, username):
-    user = get_object_or_404(User, username=username)
-    if user == request.user:
-        return redirect('posts:profile', username=username)
-    Follow.objects.get_or_create(user=request.user, author=user)
-    return redirect('posts:profile', username=username)
-
-
-@login_required
-def profile_unfollow(request, username):
-    user = get_object_or_404(User, username=username)
-    get_object_or_404(Follow, user=request.user, author=user).delete()
-    return redirect('posts:profile', username=username)
