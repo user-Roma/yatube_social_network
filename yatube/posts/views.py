@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, View
@@ -133,17 +132,17 @@ class PostEditView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-@login_required
-def add_comment(request, post_id):
-    """Adding comments to selected post"""
-    post = get_object_or_404(Post, id=post_id)
-    form = CommentForm(request.POST or None)
-    if form.is_valid():
+class AddCommentView(LoginRequiredMixin, CreateView):
+    template_name = 'includes/comment.html'
+
+    def post(self, request, *args, **kwargs):
+        post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        form = CommentForm(request.POST or None)
         comment = form.save(commit=False)
-        comment.author = request.user
+        comment.author = self.request.user
         comment.post = post
         comment.save()
-    return redirect('posts:post_detail', post_id=post_id)
+        return redirect('posts:post_detail', post_id=post.id)
 
 
 class FollowIndexView(LoginRequiredMixin, ListView):
