@@ -20,12 +20,12 @@ class IndexView(ListView):
     template_name = 'posts/index.html'
 
     def get_queryset(self):
-        self.post = Post.objects.select_related('group').all()
-        return self.post
+        post = Post.objects.select_related('group').all()
+        return post
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['my_timeout'] = 20
+        context['my_timeout'] = 5
         return context
 
 
@@ -133,6 +133,7 @@ class PostEditView(LoginRequiredMixin, UpdateView):
 
 
 class AddCommentView(LoginRequiredMixin, CreateView):
+    """Adding a comment to selected post"""
     template_name = 'includes/comment.html'
 
     def post(self, request, *args, **kwargs):
